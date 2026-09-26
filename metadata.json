@@ -1,0 +1,6 @@
+{
+  "name": "SSC 27",
+  "description": "Premium SSC 2027 countdown, live weather, Bengali & English motivational quotes, and milestone tracker.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
