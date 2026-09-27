@@ -76,9 +76,6 @@ class MainViewModel(
     private val _activeTargetDateDisplay = MutableStateFlow("7 January 2027")
     val activeTargetDateDisplay: StateFlow<String> = _activeTargetDateDisplay.asStateFlow()
 
-    private val _activeTargetEpochMillis = MutableStateFlow(1799380800000L)
-    val activeTargetEpochMillis: StateFlow<Long> = _activeTargetEpochMillis.asStateFlow()
-
     private val _timeRemaining = MutableStateFlow(CountdownTimeRemaining())
     val timeRemaining: StateFlow<CountdownTimeRemaining> = _timeRemaining.asStateFlow()
 
@@ -108,8 +105,8 @@ class MainViewModel(
     private val _notificationsEnabled = MutableStateFlow(NotificationHelper.isNotificationsEnabled(application))
     val notificationsEnabled: StateFlow<Boolean> = _notificationsEnabled.asStateFlow()
 
-    // Splash state: 0 = Splash Logo, 1 = Motivational Quote Reveal, 2 = Main Screen
-    private val _splashStep = MutableStateFlow(0)
+    // Splash state: 2 = Main Screen directly (in-app splash removed per user request)
+    private val _splashStep = MutableStateFlow(2)
     val splashStep: StateFlow<Int> = _splashStep.asStateFlow()
 
     init {
@@ -118,21 +115,21 @@ class MainViewModel(
             NotificationHelper.scheduleAllAlarms(application)
         }
 
-        startSplashSequence()
+        deduplicateAndEnsureData()
         startLiveClockAndCountdown()
         refreshWeather()
     }
 
-    private fun startSplashSequence() {
-        viewModelScope.launch {
-            // Step 0: SSC 27 Logo & subtle motion
-            delay(1200)
-            // Step 1: Unique motivational quote reveal
-            _splashStep.value = 1
-            delay(1100)
-            // Step 2: Smooth transition into Main Home Screen
-            _splashStep.value = 2
+    private fun deduplicateAndEnsureData() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                repository.deduplicateAndEnsureDefaults()
+            } catch (_: Exception) {}
         }
+    }
+
+    fun skipSplash() {
+        _splashStep.value = 2
     }
 
     private fun startLiveClockAndCountdown() {
@@ -169,13 +166,6 @@ class MainViewModel(
         if (activeItem != null) {
             _activeTitle.value = activeItem.title
             _activeTargetDateDisplay.value = activeItem.targetDateDisplay
-            _activeTargetEpochMillis.value = activeItem.targetEpochMillis
-
-            NotificationHelper.updateActiveCountdown(
-                getApplication(),
-                activeItem.title,
-                activeItem.targetEpochMillis
-            )
 
             val diffMillis = activeItem.targetEpochMillis - nowEpoch
             if (diffMillis <= 0) {
@@ -202,13 +192,6 @@ class MainViewModel(
 
             _activeTitle.value = "SSC 27"
             _activeTargetDateDisplay.value = "7 January 2027"
-            _activeTargetEpochMillis.value = defaultTarget
-
-            NotificationHelper.updateActiveCountdown(
-                getApplication(),
-                "SSC 27",
-                defaultTarget
-            )
 
             if (diff <= 0) {
                 _timeRemaining.value = CountdownTimeRemaining(0, 0, 0, 0, isTargetReached = true)
@@ -258,6 +241,7 @@ class MainViewModel(
     fun editCountdown(item: CountdownItem) {
         viewModelScope.launch(Dispatchers.IO) {
             repository.update(item)
+            NotificationHelper.updateActiveCountdown(getApplication(), item.title, item.targetEpochMillis)
         }
     }
 
@@ -313,6 +297,9 @@ class MainViewModel(
     fun toggleNotifications(enabled: Boolean) {
         _notificationsEnabled.value = enabled
         NotificationHelper.setNotificationsEnabled(getApplication(), enabled)
+        if (enabled) {
+            NotificationHelper.triggerTestNotification(getApplication())
+        }
     }
 
     fun triggerTestNotification() {

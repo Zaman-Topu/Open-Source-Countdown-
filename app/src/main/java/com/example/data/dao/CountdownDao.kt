@@ -14,6 +14,9 @@ interface CountdownDao {
     @Query("SELECT * FROM countdowns ORDER BY orderIndex ASC, id ASC")
     fun getAllCountdowns(): Flow<List<CountdownItem>>
 
+    @Query("SELECT * FROM countdowns ORDER BY orderIndex ASC, id ASC")
+    suspend fun getAllCountdownsList(): List<CountdownItem>
+
     @Query("SELECT * FROM countdowns WHERE id = :id LIMIT 1")
     suspend fun getCountdownById(id: Long): CountdownItem?
 

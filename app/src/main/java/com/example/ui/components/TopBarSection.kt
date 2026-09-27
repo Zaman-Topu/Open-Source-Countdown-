@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Cloud
@@ -117,7 +118,7 @@ fun TopBarSection(
                     modifier = Modifier.testTag("btn_countdowns_sheet")
                 ) {
                     Icon(
-                        imageVector = Icons.Default.FormatListBulleted,
+                        imageVector = Icons.AutoMirrored.Filled.FormatListBulleted,
                         contentDescription = "Countdowns list",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )

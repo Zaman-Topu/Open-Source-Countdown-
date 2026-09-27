@@ -19,9 +19,9 @@ import java.time.ZonedDateTime
 
 object NotificationHelper {
 
-    const val CHANNEL_MOTIVATION_5H = "ssc27_channel_motivation_5h"
-    const val CHANNEL_COUNTDOWN_12H = "ssc27_channel_countdown_12h"
-    const val CHANNEL_BENGALI_24H = "ssc27_channel_bengali_24h"
+    const val CHANNEL_MOTIVATION_5H = "ssc27_motivation_v3"
+    const val CHANNEL_COUNTDOWN_12H = "ssc27_countdown_v3"
+    const val CHANNEL_BENGALI_24H = "ssc27_bengali_v3"
 
     const val ACTION_ALARM_5H = "com.example.notification.ALARM_5H"
     const val ACTION_ALARM_12H = "com.example.notification.ALARM_12H"
@@ -55,35 +55,40 @@ object NotificationHelper {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-            val channel5h = NotificationChannel(
-                CHANNEL_MOTIVATION_5H,
-                "5-Hour Motivation (Bangla + English)",
-                NotificationManager.IMPORTANCE_DEFAULT
-            ).apply {
-                description = "Periodic short motivational boosts for SSC 27"
-                enableVibration(true)
-            }
-
-            val channel12h = NotificationChannel(
+            val channelCountdown = NotificationChannel(
                 CHANNEL_COUNTDOWN_12H,
-                "12-Hour Countdown Reminder",
+                "SSC 27 Countdown & Target Reminders",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "Active countdown days and hours remaining"
+                description = "Live countdown days, hours and exam targets"
                 enableVibration(true)
+                enableLights(true)
+                setShowBadge(true)
+                lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
             }
 
-            val channel24h = NotificationChannel(
+            val channelMotivation = NotificationChannel(
+                CHANNEL_MOTIVATION_5H,
+                "5-Hour Motivation & Boosts",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Periodic motivational boosts and focus tips"
+                enableVibration(true)
+                setShowBadge(true)
+            }
+
+            val channelBengali = NotificationChannel(
                 CHANNEL_BENGALI_24H,
-                "24-Hour Bengali Daily Inspiration",
+                "Daily Bengali Wisdom",
                 NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
-                description = "Daily profound Bengali wisdom and encouragement"
+                description = "Daily profound Bengali quotes and inspiration"
+                setShowBadge(true)
             }
 
-            notificationManager.createNotificationChannel(channel5h)
-            notificationManager.createNotificationChannel(channel12h)
-            notificationManager.createNotificationChannel(channel24h)
+            notificationManager.createNotificationChannel(channelCountdown)
+            notificationManager.createNotificationChannel(channelMotivation)
+            notificationManager.createNotificationChannel(channelBengali)
         }
     }
 
@@ -109,6 +114,7 @@ object NotificationHelper {
 
         // 5 hours alarm
         val interval5h = 5 * 60 * 60 * 1000L
+        val trigger5h = System.currentTimeMillis() + interval5h
         val intent5h = Intent(context, NotificationReceiver::class.java).apply {
             action = ACTION_ALARM_5H
         }
@@ -118,15 +124,11 @@ object NotificationHelper {
             intent5h,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        alarmManager.setInexactRepeating(
-            AlarmManager.RTC_WAKEUP,
-            System.currentTimeMillis() + interval5h,
-            interval5h,
-            pi5h
-        )
+        setAlarmSafely(alarmManager, trigger5h, pi5h)
 
         // 12 hours countdown reminder
         val interval12h = 12 * 60 * 60 * 1000L
+        val trigger12h = System.currentTimeMillis() + interval12h
         val intent12h = Intent(context, NotificationReceiver::class.java).apply {
             action = ACTION_ALARM_12H
         }
@@ -136,15 +138,11 @@ object NotificationHelper {
             intent12h,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        alarmManager.setInexactRepeating(
-            AlarmManager.RTC_WAKEUP,
-            System.currentTimeMillis() + interval12h,
-            interval12h,
-            pi12h
-        )
+        setAlarmSafely(alarmManager, trigger12h, pi12h)
 
         // 24 hours Bengali motivation
         val interval24h = 24 * 60 * 60 * 1000L
+        val trigger24h = System.currentTimeMillis() + interval24h
         val intent24h = Intent(context, NotificationReceiver::class.java).apply {
             action = ACTION_ALARM_24H
         }
@@ -154,12 +152,27 @@ object NotificationHelper {
             intent24h,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        alarmManager.setInexactRepeating(
-            AlarmManager.RTC_WAKEUP,
-            System.currentTimeMillis() + interval24h,
-            interval24h,
-            pi24h
-        )
+        setAlarmSafely(alarmManager, trigger24h, pi24h)
+    }
+
+    fun setAlarmSafely(alarmManager: AlarmManager, triggerAtMillis: Long, pendingIntent: PendingIntent) {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                if (alarmManager.canScheduleExactAlarms()) {
+                    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
+                } else {
+                    alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
+                }
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
+            } else {
+                alarmManager.set(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
+            }
+        } catch (_: Exception) {
+            try {
+                alarmManager.set(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
+            } catch (_: Exception) {}
+        }
     }
 
     fun cancelAllAlarms(context: Context) {
@@ -190,6 +203,7 @@ object NotificationHelper {
     }
 
     fun triggerTestNotification(context: Context) {
+        initNotificationChannels(context)
         val quotes = MotivationalQuotes.quotes
         val quote = quotes.random()
 
@@ -212,7 +226,7 @@ object NotificationHelper {
         val remainingText = if (diffMillis > 0) "আর মাত্র $days দিন $hours ঘণ্টা বাকি!" else "মাহেন্দ্রক্ষণ উপস্থিত!"
 
         val notification = NotificationCompat.Builder(context, CHANNEL_COUNTDOWN_12H)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.ic_stat_notification)
             .setContentTitle("$activeTitle · $days Days Remaining")
             .setContentText(quote.bangla)
             .setStyle(
@@ -220,7 +234,8 @@ object NotificationHelper {
                     .bigText("${quote.bangla}\n\n\"${quote.english}\"\n\n$remainingText")
                     .setSummaryText(activeTitle)
             )
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
             .build()

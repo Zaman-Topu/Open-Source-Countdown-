@@ -29,12 +29,13 @@ class NotificationReceiver : BroadcastReceiver() {
         )
 
         val notificationManager = NotificationManagerCompat.from(context)
+        NotificationHelper.initNotificationChannels(context)
 
         when (intent.action) {
             NotificationHelper.ACTION_ALARM_5H -> {
                 val quote = NotificationHelper.getNextQuoteFor5H(context)
                 val notification = NotificationCompat.Builder(context, NotificationHelper.CHANNEL_MOTIVATION_5H)
-                    .setSmallIcon(R.drawable.ic_launcher_foreground)
+                    .setSmallIcon(R.drawable.ic_stat_notification)
                     .setContentTitle("SSC 27 · প্রেরণা ও ফোকাস")
                     .setContentText(quote.bangla)
                     .setStyle(
@@ -42,7 +43,8 @@ class NotificationReceiver : BroadcastReceiver() {
                             .bigText("${quote.bangla}\n\n\"${quote.english}\"")
                             .setSummaryText("5-Hour Motivation")
                     )
-                    .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                    .setPriority(NotificationCompat.PRIORITY_HIGH)
+                    .setDefaults(NotificationCompat.DEFAULT_ALL)
                     .setContentIntent(pendingIntent)
                     .setAutoCancel(true)
                     .build()
@@ -50,6 +52,21 @@ class NotificationReceiver : BroadcastReceiver() {
                 try {
                     notificationManager.notify(5001, notification)
                 } catch (_: SecurityException) {}
+
+                // Reschedule next 5h alarm
+                val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? android.app.AlarmManager
+                alarmManager?.let {
+                    val nextIntent = Intent(context, NotificationReceiver::class.java).apply {
+                        action = NotificationHelper.ACTION_ALARM_5H
+                    }
+                    val pi = PendingIntent.getBroadcast(
+                        context,
+                        1001,
+                        nextIntent,
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                    )
+                    NotificationHelper.setAlarmSafely(it, System.currentTimeMillis() + 5 * 60 * 60 * 1000L, pi)
+                }
             }
 
             NotificationHelper.ACTION_ALARM_12H -> {
@@ -69,7 +86,7 @@ class NotificationReceiver : BroadcastReceiver() {
                 val body = "তোমার স্বপ্নপূরণের লক্ষ্যমাত্রা দিন দিন এগিয়ে আসছে। আজ প্রতিটি মিনিটকে কাজে লাগাও!"
 
                 val notification = NotificationCompat.Builder(context, NotificationHelper.CHANNEL_COUNTDOWN_12H)
-                    .setSmallIcon(R.drawable.ic_launcher_foreground)
+                    .setSmallIcon(R.drawable.ic_stat_notification)
                     .setContentTitle(title)
                     .setContentText(body)
                     .setStyle(
@@ -78,6 +95,7 @@ class NotificationReceiver : BroadcastReceiver() {
                             .setSummaryText(titleText)
                     )
                     .setPriority(NotificationCompat.PRIORITY_HIGH)
+                    .setDefaults(NotificationCompat.DEFAULT_ALL)
                     .setContentIntent(pendingIntent)
                     .setAutoCancel(true)
                     .build()
@@ -85,12 +103,27 @@ class NotificationReceiver : BroadcastReceiver() {
                 try {
                     notificationManager.notify(12001, notification)
                 } catch (_: SecurityException) {}
+
+                // Reschedule next 12h alarm
+                val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? android.app.AlarmManager
+                alarmManager?.let {
+                    val nextIntent = Intent(context, NotificationReceiver::class.java).apply {
+                        action = NotificationHelper.ACTION_ALARM_12H
+                    }
+                    val pi = PendingIntent.getBroadcast(
+                        context,
+                        1002,
+                        nextIntent,
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                    )
+                    NotificationHelper.setAlarmSafely(it, System.currentTimeMillis() + 12 * 60 * 60 * 1000L, pi)
+                }
             }
 
             NotificationHelper.ACTION_ALARM_24H -> {
                 val quote = NotificationHelper.getNextQuoteFor24H(context)
                 val notification = NotificationCompat.Builder(context, NotificationHelper.CHANNEL_BENGALI_24H)
-                    .setSmallIcon(R.drawable.ic_launcher_foreground)
+                    .setSmallIcon(R.drawable.ic_stat_notification)
                     .setContentTitle("SSC 27 · দৈনিক অনুপ্রেরণা")
                     .setContentText(quote.bangla)
                     .setStyle(
@@ -106,6 +139,21 @@ class NotificationReceiver : BroadcastReceiver() {
                 try {
                     notificationManager.notify(24001, notification)
                 } catch (_: SecurityException) {}
+
+                // Reschedule next 24h alarm
+                val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? android.app.AlarmManager
+                alarmManager?.let {
+                    val nextIntent = Intent(context, NotificationReceiver::class.java).apply {
+                        action = NotificationHelper.ACTION_ALARM_24H
+                    }
+                    val pi = PendingIntent.getBroadcast(
+                        context,
+                        1003,
+                        nextIntent,
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                    )
+                    NotificationHelper.setAlarmSafely(it, System.currentTimeMillis() + 24 * 60 * 60 * 1000L, pi)
+                }
             }
         }
     }

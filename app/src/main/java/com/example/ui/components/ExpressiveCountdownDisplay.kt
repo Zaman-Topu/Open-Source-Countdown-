@@ -7,6 +7,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,10 +16,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Celebration
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.HourglassTop
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.FilledTonalButton
@@ -46,6 +50,7 @@ fun ExpressiveCountdownDisplay(
     timeRemaining: CountdownTimeRemaining,
     targetEpochMillis: Long = 1799380800000L,
     onShareCountdown: () -> Unit = {},
+    onEditCountdown: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -54,14 +59,14 @@ fun ExpressiveCountdownDisplay(
             .padding(horizontal = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // App / Countdown Header
+        // App / Countdown Header with direct Edit affordance
         Surface(
             shape = RoundedCornerShape(100.dp),
             color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f),
             modifier = Modifier.padding(bottom = 14.dp)
         ) {
             Row(
-                modifier = Modifier.padding(horizontal = 18.dp, vertical = 6.dp),
+                modifier = Modifier.padding(start = 16.dp, end = if (onEditCountdown != null) 8.dp else 16.dp, top = 6.dp, bottom = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
@@ -79,6 +84,27 @@ fun ExpressiveCountdownDisplay(
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                     modifier = Modifier.testTag("countdown_title")
                 )
+                if (onEditCountdown != null) {
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .clickable { onEditCountdown() }
+                            .testTag("btn_edit_active_countdown")
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Edit Active Countdown",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                    }
+                }
             }
         }
 
